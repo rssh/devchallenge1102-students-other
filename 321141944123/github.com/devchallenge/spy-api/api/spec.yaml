@@ -1,0 +1,227 @@
+swagger: "2.0"
+info:
+  title: Spy API
+  version: "1.0.0"
+  description: Monitoring for mobile phones' moves
+basePath: /ourell
+schemes:
+  - http
+consumes:
+  - application/json
+
+paths:
+  /bbinput:
+    post:
+      summary: Accepts GPS coordinates from the mobile and saves them to the database
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            example:
+              number: "+380991926482"
+              ip: "35.25.21.123"
+              imei: "502507345219189"
+              timestamp: "2019/03/22-15:50:20"
+              coordinates: [22.1832284135991, 60.4538416572538]
+            properties:
+              number:
+                $ref: "#/definitions/Number"
+              imei:
+                type: string
+                description: Device identificator
+              ip:
+                type: string
+                description: Optional IP address
+              timestamp:
+                $ref: "#/definitions/Timestamp"
+              coordinates:
+                description: GPS coordinates of the phone's location
+                type: object
+                properties:
+                  longitude:
+                    description: Longitude in degrees
+                    type: number
+                    format: float
+                    minimum: -180
+                    maximum: 180
+                  latitude:
+                    description: Latitude in degrees
+                    type: number
+                    format: float
+                    minimum: -90
+                    maximum: 90
+            required:
+              - number
+              - imei
+              - coordinates
+      responses:
+        200:
+          description: OK
+        400:
+          description: Invalid arguments
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: General server error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /bbs:
+    post:
+      summary: Shows how much time two phones are located in the same room
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            example:
+              number1: "+380991926482"
+              number2: "+380923403424"
+              from: "2019/03/22-15:50:20"
+              to: "2020/03/22-15:50:20"
+              minDistance: 10
+            properties:
+              number1:
+                $ref: "#/definitions/Number"
+              number2:
+                $ref: "#/definitions/Number"
+              from:
+                $ref: "#/definitions/Timestamp"
+              to:
+                $ref: "#/definitions/Timestamp"
+              minDistance:
+                description: >-
+                  Distance in meters.
+                  Maximum value is Earth equator.
+                type: number
+                format: int32
+                minimum: 0
+                maximum: 40008000
+            required:
+              - number1
+              - number2
+              - from
+              - to
+              - minDistance
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              percentage:
+                description: >-
+                  The percentage of off-hours that people spend together
+                  (excluding the interval from 9 to 18).
+                  Value is in range [0, 100].
+                type: number
+                format: int32
+                minimum: 0
+                maximum: 100
+        400:
+          description: Invalid arguments
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: General server error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /bbfastDrive:
+    post:
+      summary: Returns phone numbers of fast drivers
+      description: >-
+        Returns users who exceeds the speed on public roads.
+        Request is used by DAI.
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              from:
+                $ref: "#/definitions/Timestamp"
+              to:
+                $ref: "#/definitions/Timestamp"
+              minLocation:
+                type: object
+                properties:
+                  # TODO move longitude and latitude to definitions
+                  longitude:
+                    description: Longitude in degrees
+                    type: number
+                    format: float
+                    minimum: -180
+                    maximum: 180
+                  latitude:
+                    description: Latitude in degrees
+                    type: number
+                    format: float
+                    minimum: -90
+                    maximum: 90
+              maxLocation:
+                type: object
+                properties:
+                  longitude:
+                    description: Longitude in degrees
+                    type: number
+                    format: float
+                    minimum: -180
+                    maximum: 180
+                  latitude:
+                    description: Latitude in degrees
+                    type: number
+                    format: float
+                    minimum: -90
+                    maximum: 90
+              minSpped:
+                description: Minimum speed in km/h
+                type: integer
+                format: int32
+              maxLen:
+                description: Maximum length
+                type: integer
+                format: int32
+            required:
+              - from
+              - to
+      responses:
+        200:
+          description: OK
+          schema:
+            properties:
+              phones:
+                description: Phone numbers
+                type: array
+                items:
+                  type: string
+        400:
+          description: Invalid arguments
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: General server error
+          schema:
+            $ref: '#/definitions/Error'
+
+definitions:
+  # Schema for error response body
+  Error:
+    type: object
+    properties:
+      message:
+        type: string
+    required:
+      - message
+
+  Timestamp:
+    type: string
+    description: EET timestamp in "YYYY/MM/DD-hh:mm:ss" format
+
+  Number:
+    type: string
+    description: Phone number
